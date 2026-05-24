@@ -1,0 +1,19 @@
+{
+  "name": "jest-flaky-async-tests",
+  "version": "1.0.0",
+  "description": "A comprehensive Jest test repo demonstrating truly async and network-flaky test patterns",
+  "scripts": {
+    "test": "jest",
+    "test:async": "jest tests/async",
+    "test:network": "jest tests/network",
+    "test:flaky": "jest tests/flaky",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "jest-circus": "^29.7.0"
+  },
+  "license": "MIT"
+}
