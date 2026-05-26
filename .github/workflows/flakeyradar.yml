@@ -1,0 +1,60 @@
+name: FlakeyRadar Runner
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  detect-flaky:
+    runs-on: ubuntu-latest
+
+    if: "!contains(github.event.head_commit.message, '[skip-flakeyradar]')"
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Detect package manager and install deps
+        run: |
+         echo "Detecting package manager..."
+
+         if [ -f pnpm-lock.yaml ]; then
+          echo "PNPM project detected"
+          npm install -g pnpm
+          pnpm install
+
+         elif [ -f yarn.lock ]; then
+          echo "Yarn project detected"
+          npm install -g yarn
+          yarn install
+
+         else
+          echo "NPM project detected"
+          npm install
+         fi
+
+      - name: Run FlakeyRadar
+        run: node scripts/flakeyradar-runner.js
+
+      - name: Send results
+        run: |
+          node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('flaky-results.json', 'utf-8'));
+            console.log(data);
+            const payload = {
+              githubRepoId: parseInt('${{ github.repository_id }}'),
+              repoFullName: '${{ github.repository }}',
+              commitSha: '${{ github.sha }}'.slice(0, 7),
+              totalTests: data.totalTests,
+              results: data.results
+            };
+            fs.writeFileSync('flaky-results.json', JSON.stringify(payload));
+          "
+          curl -X POST ${{ secrets.FLAKEYRADAR_API_URL }}/api/test-runs/results \
+          -H "x-api-key: ${{ secrets.FLAKEYRADAR_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d @flaky-results.json
